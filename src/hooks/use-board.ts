@@ -1,20 +1,28 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { boardApi, boardKeys } from "@/lib/api";
-import type { Board, CreateTaskInput, MoveTaskInput, Task } from "@/lib/types";
+import { boardsApi, boardKeys } from "@/lib/api";
+import type {
+  BoardDetail,
+  CreateTaskInput,
+  MoveTaskInput,
+  Task,
+} from "@/lib/types";
 
 const ORDER_STEP = 1000;
 
-export function useBoard() {
+export function useBoard(boardId: string) {
   return useQuery({
-    queryKey: boardKeys.all,
-    queryFn: ({ signal }) => boardApi.get(signal),
+    queryKey: boardKeys.detail(boardId),
+    queryFn: ({ signal }) => boardsApi.get(boardId, signal),
   });
 }
 
 /** Apply the same move logic the server uses, so the optimistic board matches. */
-function applyMove(board: Board, { id, columnId, beforeId }: MoveTaskInput): Board {
+function applyMove(
+  board: BoardDetail,
+  { id, columnId, beforeId }: MoveTaskInput,
+): BoardDetail {
   const task = board.tasks.find((t) => t.id === id);
   if (!task) return board;
 
@@ -44,13 +52,14 @@ function applyMove(board: Board, { id, columnId, beforeId }: MoveTaskInput): Boa
   };
 }
 
-export function useCreateTask() {
+export function useCreateTask(boardId: string) {
   const qc = useQueryClient();
+  const key = boardKeys.detail(boardId);
   return useMutation({
-    mutationFn: (input: CreateTaskInput) => boardApi.createTask(input),
+    mutationFn: (input: CreateTaskInput) => boardsApi.createTask(boardId, input),
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: boardKeys.all });
-      const previous = qc.getQueryData<Board>(boardKeys.all);
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<BoardDetail>(key);
       if (previous) {
         const maxOrder = previous.tasks
           .filter((t) => t.columnId === input.columnId)
@@ -62,7 +71,7 @@ export function useCreateTask() {
           order: maxOrder + ORDER_STEP,
           createdAt: new Date().toISOString(),
         };
-        qc.setQueryData<Board>(boardKeys.all, {
+        qc.setQueryData<BoardDetail>(key, {
           ...previous,
           tasks: [...previous.tasks, optimistic],
         });
@@ -70,40 +79,42 @@ export function useCreateTask() {
       return { previous };
     },
     onError: (_err, _input, ctx) => {
-      if (ctx?.previous) qc.setQueryData(boardKeys.all, ctx.previous);
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: boardKeys.all }),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }
 
-export function useMoveTask() {
+export function useMoveTask(boardId: string) {
   const qc = useQueryClient();
+  const key = boardKeys.detail(boardId);
   return useMutation({
-    mutationFn: (input: MoveTaskInput) => boardApi.moveTask(input),
+    mutationFn: (input: MoveTaskInput) => boardsApi.moveTask(input),
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: boardKeys.all });
-      const previous = qc.getQueryData<Board>(boardKeys.all);
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<BoardDetail>(key);
       if (previous) {
-        qc.setQueryData<Board>(boardKeys.all, applyMove(previous, input));
+        qc.setQueryData<BoardDetail>(key, applyMove(previous, input));
       }
       return { previous };
     },
     onError: (_err, _input, ctx) => {
-      if (ctx?.previous) qc.setQueryData(boardKeys.all, ctx.previous);
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: boardKeys.all }),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }
 
-export function useDeleteTask() {
+export function useDeleteTask(boardId: string) {
   const qc = useQueryClient();
+  const key = boardKeys.detail(boardId);
   return useMutation({
-    mutationFn: (id: string) => boardApi.deleteTask(id),
+    mutationFn: (id: string) => boardsApi.deleteTask(id),
     onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: boardKeys.all });
-      const previous = qc.getQueryData<Board>(boardKeys.all);
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<BoardDetail>(key);
       if (previous) {
-        qc.setQueryData<Board>(boardKeys.all, {
+        qc.setQueryData<BoardDetail>(key, {
           ...previous,
           tasks: previous.tasks.filter((t) => t.id !== id),
         });
@@ -111,8 +122,8 @@ export function useDeleteTask() {
       return { previous };
     },
     onError: (_err, _id, ctx) => {
-      if (ctx?.previous) qc.setQueryData(boardKeys.all, ctx.previous);
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: boardKeys.all }),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }

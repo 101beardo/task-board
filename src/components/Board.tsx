@@ -13,7 +13,13 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useBoard, useCreateTask, useDeleteTask, useMoveTask } from "@/hooks/use-board";
+import {
+  useBoard,
+  useCreateTask,
+  useDeleteTask,
+  useMoveTask,
+} from "@/hooks/use-board";
+import { canWrite } from "@/lib/types";
 import type { Task } from "@/lib/types";
 import { useBoardUi } from "@/store/board-ui";
 import { Column } from "./Column";
@@ -22,11 +28,11 @@ function byOrder(a: Task, b: Task) {
   return a.order - b.order;
 }
 
-export function Board() {
-  const { data, isPending, isError, error, refetch } = useBoard();
-  const createTask = useCreateTask();
-  const moveTask = useMoveTask();
-  const deleteTask = useDeleteTask();
+export function Board({ boardId }: { boardId: string }) {
+  const { data, isPending, isError, error, refetch } = useBoard(boardId);
+  const createTask = useCreateTask(boardId);
+  const moveTask = useMoveTask(boardId);
+  const deleteTask = useDeleteTask(boardId);
   const { activeTaskId, setActiveTaskId } = useBoardUi();
 
   const sensors = useSensors(
@@ -44,6 +50,7 @@ export function Board() {
     return map;
   }, [data]);
 
+  const readOnly = !data || !canWrite(data.role);
   const activeTask = data?.tasks.find((t) => t.id === activeTaskId) ?? null;
 
   function handleDragStart(event: DragStartEvent) {
@@ -68,7 +75,6 @@ export function Board() {
       return;
     }
 
-    // Dropped on another task: land in that task's column, just before it.
     const overTask = data.tasks.find((t) => t.id === overId);
     if (!overTask || overTask.id === activeId) return;
 
@@ -78,7 +84,6 @@ export function Board() {
     const overIndex = siblings.findIndex((t) => t.id === overTask.id);
     const activeIndex = siblings.findIndex((t) => t.order > moved.order);
 
-    // If dragging downward within the same column, insert after the target.
     const draggingDown =
       moved.columnId === overTask.columnId &&
       activeIndex !== -1 &&
@@ -121,6 +126,27 @@ export function Board() {
     );
   }
 
+  const columns = (
+    <div className="flex flex-1 gap-4 overflow-x-auto p-4">
+      {data.columns.map((column) => (
+        <Column
+          key={column.id}
+          column={column}
+          tasks={tasksByColumn.get(column.id) ?? []}
+          readOnly={readOnly}
+          onCreate={(title, columnId) =>
+            createTask.mutate({ title, columnId })
+          }
+          onDelete={(id) => deleteTask.mutate(id)}
+        />
+      ))}
+    </div>
+  );
+
+  if (readOnly) {
+    return columns;
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -129,17 +155,7 @@ export function Board() {
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveTaskId(null)}
     >
-      <div className="flex flex-1 gap-4 overflow-x-auto p-4">
-        {data.columns.map((column) => (
-          <Column
-            key={column.id}
-            column={column}
-            tasks={tasksByColumn.get(column.id) ?? []}
-            onCreate={(title, columnId) => createTask.mutate({ title, columnId })}
-            onDelete={(id) => deleteTask.mutate(id)}
-          />
-        ))}
-      </div>
+      {columns}
 
       <DragOverlay dropAnimation={null}>
         {activeTask ? (

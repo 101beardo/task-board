@@ -1,13 +1,13 @@
 import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../src/generated/prisma/client";
-
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-});
+import { auth } from "../src/lib/auth";
+import { prisma } from "../src/server/db";
 
 const BOARD_ID = "demo-board";
-const DEMO_USER_ID = "demo-user";
+
+const DEMO_ACCOUNTS = [
+  { email: "demo@task-board.local", name: "Demo Owner", password: "demo-password" },
+  { email: "viewer@task-board.local", name: "Demo Viewer", password: "demo-password" },
+];
 
 const COLUMNS = [
   { id: "col-backlog", name: "Backlog", position: 0 },
@@ -26,28 +26,46 @@ const TASKS: Array<{ columnId: string; title: string }> = [
   { columnId: "col-done", title: "Fractional ordering so reorders never renumber" },
 ];
 
-async function main() {
-  await prisma.user.upsert({
-    where: { id: DEMO_USER_ID },
-    update: {},
-    create: {
-      id: DEMO_USER_ID,
-      name: "Demo User",
-      email: "demo@task-board.local",
-      emailVerified: true,
+async function ensureAccount(account: (typeof DEMO_ACCOUNTS)[number]) {
+  const existing = await prisma.user.findUnique({
+    where: { email: account.email },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  // Sign up through Better Auth so the password hash is in its own format.
+  await auth.api.signUpEmail({
+    body: {
+      email: account.email,
+      password: account.password,
+      name: account.name,
     },
   });
+  const created = await prisma.user.findUniqueOrThrow({
+    where: { email: account.email },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+async function main() {
+  const [ownerId, viewerId] = await Promise.all(DEMO_ACCOUNTS.map(ensureAccount));
 
   await prisma.board.upsert({
     where: { id: BOARD_ID },
     update: { name: "Product Roadmap" },
-    create: { id: BOARD_ID, name: "Product Roadmap", ownerId: DEMO_USER_ID },
+    create: { id: BOARD_ID, name: "Product Roadmap", ownerId },
   });
 
   await prisma.membership.upsert({
-    where: { boardId_userId: { boardId: BOARD_ID, userId: DEMO_USER_ID } },
+    where: { boardId_userId: { boardId: BOARD_ID, userId: ownerId } },
     update: { role: "OWNER" },
-    create: { boardId: BOARD_ID, userId: DEMO_USER_ID, role: "OWNER" },
+    create: { boardId: BOARD_ID, userId: ownerId, role: "OWNER" },
+  });
+  await prisma.membership.upsert({
+    where: { boardId_userId: { boardId: BOARD_ID, userId: viewerId } },
+    update: { role: "VIEWER" },
+    create: { boardId: BOARD_ID, userId: viewerId, role: "VIEWER" },
   });
 
   for (const column of COLUMNS) {
@@ -58,7 +76,6 @@ async function main() {
     });
   }
 
-  // Only seed tasks when the board has none, so re-running does not duplicate.
   const existingTasks = await prisma.task.count({
     where: { column: { boardId: BOARD_ID } },
   });
@@ -76,7 +93,9 @@ async function main() {
     }
   }
 
-  console.log(`Seeded board "${BOARD_ID}" with ${COLUMNS.length} columns.`);
+  console.log(
+    `Seeded "${BOARD_ID}". Sign in as ${DEMO_ACCOUNTS[0].email} (owner) or ${DEMO_ACCOUNTS[1].email} (viewer), password "${DEMO_ACCOUNTS[0].password}".`,
+  );
 }
 
 main()

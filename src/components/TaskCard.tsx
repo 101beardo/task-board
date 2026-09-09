@@ -6,12 +6,13 @@ import type { Task } from "@/lib/types";
 
 interface TaskCardProps {
   task: Task;
+  readOnly: boolean;
   onDelete: (id: string) => void;
 }
 
-export function TaskCard({ task, onDelete }: TaskCardProps) {
+export function TaskCard({ task, readOnly, onDelete }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id, data: { type: "task", task } });
+    useSortable({ id: task.id, data: { type: "task", task }, disabled: readOnly });
 
   const pending = task.id.startsWith("optimistic-");
 
@@ -26,16 +27,22 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
         pending ? "opacity-60" : "",
       ].join(" ")}
     >
-      <button
-        type="button"
-        className="flex-1 cursor-grab touch-none text-left leading-snug text-zinc-800 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 active:cursor-grabbing dark:text-zinc-100"
-        {...attributes}
-        {...listeners}
-      >
-        {task.title}
-      </button>
+      {readOnly ? (
+        <p className="leading-snug text-zinc-800 dark:text-zinc-100">
+          {task.title}
+        </p>
+      ) : (
+        <button
+          type="button"
+          className="flex-1 cursor-grab touch-none text-left leading-snug text-zinc-800 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 active:cursor-grabbing dark:text-zinc-100"
+          {...attributes}
+          {...listeners}
+        >
+          {task.title}
+        </button>
+      )}
 
-      {!pending && (
+      {!readOnly && !pending && (
         <button
           type="button"
           aria-label={`Delete "${task.title}"`}
