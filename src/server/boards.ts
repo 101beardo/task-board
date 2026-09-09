@@ -8,6 +8,7 @@ import type {
 import { canWrite } from "@/lib/types";
 import { prisma } from "@/server/db";
 import { HttpError } from "@/server/http-error";
+import { broadcastBoardChange } from "@/server/realtime";
 
 const ORDER_STEP = 1000;
 
@@ -168,6 +169,7 @@ export async function createTask(
   const task = await prisma.task.create({
     data: { title, columnId, order: (max._max.order ?? 0) + ORDER_STEP },
   });
+  broadcastBoardChange(boardId);
   return toTaskDTO(task);
 }
 
@@ -215,6 +217,7 @@ export async function moveTask(
     where: { id: taskId },
     data: { columnId, order: newOrder },
   });
+  broadcastBoardChange(boardId);
   return toTaskDTO(updated);
 }
 
@@ -230,6 +233,7 @@ export async function deleteTask(
 
   await requireWriteAccess(task.column.boardId, userId);
   await prisma.task.delete({ where: { id: taskId } });
+  broadcastBoardChange(task.column.boardId);
 }
 
 // --- Members -------------------------------------------------------------

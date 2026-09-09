@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Board } from "@/components/Board";
 import { MembersPanel } from "@/components/MembersPanel";
 import { useBoard } from "@/hooks/use-board";
+import { useBoardSync } from "@/hooks/use-board-sync";
 
 interface BoardScreenProps {
   boardId: string;
@@ -14,6 +15,7 @@ interface BoardScreenProps {
 
 export function BoardScreen({ boardId, userName }: BoardScreenProps) {
   const { data } = useBoard(boardId);
+  useBoardSync(boardId);
   const [membersOpen, setMembersOpen] = useState(false);
   const isOwner = data?.role === "OWNER";
 

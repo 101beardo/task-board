@@ -4,7 +4,8 @@ A real-time-ready collaborative task board. Sign in, create boards, invite peopl
 with a role, and drag cards around. Every change applies optimistically and
 reconciles against the server.
 
-**Live:** https://task-board-101beardos-projects.vercel.app
+**Live:** deployed on Railway (single Node service + Postgres) so the WebSocket
+server runs. A serverless deploy works too, minus live sync.
 
 ## What's built
 
@@ -18,6 +19,12 @@ reconciles against the server.
   - only the `OWNER` can invite members or change roles
   The checks live in `src/server/boards.ts` and run on every mutation, not just
   in the UI.
+- **Live sync over WebSockets.** A custom Node server (`server.ts`) runs Next and
+  a `ws` server on `/api/ws`. The upgrade is authorised against the session
+  cookie and board membership; after any task mutation the server broadcasts to
+  everyone watching that board and their board query refetches. Open the board in
+  two tabs to see it. Without the custom server (plain `next dev`, a serverless
+  host) the socket just never opens and the board still works.
 - **Drag and drop** across and within columns via `@dnd-kit` (pointer + keyboard
   sensors, drag overlay, `closestCorners`).
 - **Optimistic updates** with TanStack Query: `onMutate` snapshots the cache and
@@ -45,12 +52,13 @@ Sign in as each in two browsers to see the role gate.
 ## Stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 ·
-Better Auth · Prisma 7 + PostgreSQL · TanStack Query 5 · Zustand 5 · @dnd-kit
+Better Auth · Prisma 7 + PostgreSQL · TanStack Query 5 · Zustand 5 · @dnd-kit ·
+`ws` on a custom Node server
 
 ## Next
 
-- Live sync across clients over WebSockets (the two-tab demo)
 - Framer Motion polish on cards and the members panel
+- Presence (who else is looking at this board)
 
 ## Develop
 
