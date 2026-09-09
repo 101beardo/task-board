@@ -9,6 +9,26 @@ on:
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: taskboard
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/taskboard?schema=public
+      BETTER_AUTH_SECRET: ci-secret-not-used-for-anything-real-000000
+      BETTER_AUTH_URL: http://localhost:3000
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,5 +39,6 @@ jobs:
       # Linux-only native binaries (oxide, lightningcss, swc) from a lockfile
       # generated on macOS, which makes `npm ci` fail on the Linux runner.
       - run: npm install --no-audit --no-fund
+      - run: npx prisma migrate deploy
       - run: npm run lint
       - run: npm run build

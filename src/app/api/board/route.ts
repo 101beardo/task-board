@@ -1,5 +1,5 @@
-import { getBoard } from "@/server/board-store";
+import { getBoard } from "@/server/board-repo";
 
 export async function GET() {
-  return Response.json(getBoard());
+  return Response.json(await getBoard());
 }

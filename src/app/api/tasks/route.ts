@@ -1,4 +1,4 @@
-import { columnExists, createTask } from "@/server/board-store";
+import { columnExists, createTask } from "@/server/board-repo";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -16,10 +16,10 @@ export async function POST(request: Request) {
   if (title.trim().length > 200) {
     return Response.json({ error: "title is too long" }, { status: 400 });
   }
-  if (typeof columnId !== "string" || !columnExists(columnId)) {
+  if (typeof columnId !== "string" || !(await columnExists(columnId))) {
     return Response.json({ error: "unknown columnId" }, { status: 400 });
   }
 
-  const task = createTask(title.trim(), columnId);
+  const task = await createTask(title.trim(), columnId);
   return Response.json(task, { status: 201 });
 }
