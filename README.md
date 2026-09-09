@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Task Board
 
-## Getting Started
+A real-time-ready collaborative task board. Drag cards between columns, reorder
+within a column, and every change lands instantly with an optimistic update that
+reconciles against the server.
 
-First, run the development server:
+**Live:** https://task-board-101beardos-projects.vercel.app
+
+## What this slice covers
+
+- **Board UI** with four columns (Backlog, In progress, In review, Done) and
+  per-column task counts.
+- **Drag and drop** across and within columns via `@dnd-kit` (pointer + keyboard
+  sensors, drag overlay, `closestCorners` collision).
+- **Optimistic updates** with TanStack Query: `onMutate` snapshots the cache and
+  patches it, `onError` rolls back, `onSettled` refetches. Create, move and
+  delete all apply before the network round-trip.
+- **Fractional ordering** so a reorder only rewrites the one card that moved,
+  never the whole column (`order` is a float, new position is the midpoint of its
+  neighbours).
+- **Route handlers** (`/api/board`, `/api/tasks`, `/api/tasks/[id]`) backed by an
+  in-memory store. The store lives on `globalThis` so it survives HMR and resets
+  on a cold start.
+- **Ephemeral drag state** (the currently dragged card id) in Zustand, kept out
+  of the server cache.
+
+## Stack
+
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 ·
+TanStack Query 5 · Zustand 5 · @dnd-kit
+
+## Next slices
+
+- Auth + role-based access (owner / editor / viewer)
+- Postgres + Prisma replacing the in-memory store
+- Live sync across clients over WebSockets
+
+## Develop
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build   # production build + typecheck
+npm run lint
+```
