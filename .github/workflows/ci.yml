@@ -15,6 +15,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm ci is avoided here: npm omits transitive @emnapi/* deps of the
+      # Linux-only native binaries (oxide, lightningcss, swc) from a lockfile
+      # generated on macOS, which makes `npm ci` fail on the Linux runner.
+      - run: npm install --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
