@@ -1,0 +1,24 @@
+# Render Blueprint. Free web instance (sleeps after 15 min idle; the
+# keep-warm workflow pings /api/health to keep it up). Postgres is external
+# (Neon free tier) because Render's own free database expires.
+services:
+  - type: web
+    name: task-board
+    runtime: node
+    plan: free
+    buildCommand: npm install --no-audit --no-fund && npm run build
+    startCommand: npm run db:deploy && npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # Set these in the Render dashboard (Environment tab):
+      - key: DATABASE_URL # Neon pooled connection string, ?sslmode=require
+        sync: false
+      - key: BETTER_AUTH_SECRET # openssl rand -base64 32
+        sync: false
+      - key: BETTER_AUTH_URL # the Render URL, e.g. https://task-board.onrender.com
+        sync: false

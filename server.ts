@@ -6,9 +6,10 @@ import { registerBoardBroadcaster } from "@/server/realtime";
 import { verifyBoardAccess } from "@/server/ws-auth";
 
 const port = Number(process.env.PORT ?? 3000);
+const hostname = process.env.HOSTNAME ?? "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
 
-const app = next({ dev });
+const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -60,9 +61,9 @@ app.prepare().then(() => {
     });
   });
 
-  server.listen(port, () => {
+  server.listen(port, hostname, () => {
     console.log(
-      `> task-board ready on http://localhost:${port} (${
+      `> task-board ready on http://${hostname}:${port} (${
         dev ? "development" : "production"
       })`,
     );

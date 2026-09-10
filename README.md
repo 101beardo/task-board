@@ -4,8 +4,8 @@ A real-time-ready collaborative task board. Sign in, create boards, invite peopl
 with a role, and drag cards around. Every change applies optimistically and
 reconciles against the server.
 
-**Live:** deployed on Railway (single Node service + Postgres) so the WebSocket
-server runs. A serverless deploy works too, minus live sync.
+**Live:** runs as one Node service (custom `server.ts`) so the WebSocket server
+works. A serverless deploy also works, minus live sync.
 
 ## What's built
 
@@ -77,3 +77,21 @@ Open http://localhost:3000. Copy `.env.example` to `.env` first and set
 npm run build   # prisma generate + production build + typecheck
 npm run lint
 ```
+
+## Deploy (free)
+
+A single always-on Node process plus a Postgres database. This setup keeps both
+on free tiers:
+
+1. **Database** — create a free Postgres on [Neon](https://neon.tech) and copy
+   the pooled connection string (it ends with `?sslmode=require`).
+2. **App** — on [Render](https://render.com), *New > Blueprint* against this repo.
+   `render.yaml` provisions a free web service; set `DATABASE_URL` (the Neon
+   string), `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and
+   `BETTER_AUTH_URL` (the Render URL) in the dashboard.
+3. **Seed once** — from the Render shell, `npm run db:seed`.
+4. **Keep it warm** — set an `APP_URL` repo variable to the Render URL; the
+   `keep-warm` workflow pings `/api/health` every 10 minutes so the free
+   instance never cold-starts for a visitor.
+
+Migrations run on each deploy (`prisma migrate deploy` in the start command).
