@@ -21,5 +21,5 @@ services:
         sync: false
       - key: BETTER_AUTH_SECRET # openssl rand -base64 32
         sync: false
-      - key: BETTER_AUTH_URL # the Render URL, e.g. https://task-board.onrender.com
+      - key: BETTER_AUTH_URL # the Render URL, e.g. https://task-board-wud1.onrender.com
         sync: false
