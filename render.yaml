@@ -6,15 +6,16 @@ services:
     name: task-board
     runtime: node
     plan: free
-    buildCommand: npm install --no-audit --no-fund && npm run build
+    # --include=dev: the build needs devDependencies (tailwind, typescript,
+    # prisma), which npm skips when NODE_ENV=production. The start script sets
+    # NODE_ENV=production for the running server itself.
+    buildCommand: npm install --include=dev --no-audit --no-fund && npm run build
     startCommand: npm run db:deploy && npm run start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: NODE_ENV
-        value: production
       # Set these in the Render dashboard (Environment tab):
       - key: DATABASE_URL # Neon pooled connection string, ?sslmode=require
         sync: false
