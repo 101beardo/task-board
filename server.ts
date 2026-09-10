@@ -6,7 +6,9 @@ import { registerBoardBroadcaster } from "@/server/realtime";
 import { verifyBoardAccess } from "@/server/ws-auth";
 
 const port = Number(process.env.PORT ?? 3000);
-const hostname = process.env.HOSTNAME ?? "0.0.0.0";
+// Bind all interfaces. Not process.env.HOSTNAME: hosts like Render set that to
+// the container's own hostname, which is not a bindable address.
+const hostname = "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
 
 const app = next({ dev, hostname, port });
