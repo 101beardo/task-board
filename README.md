@@ -4,8 +4,11 @@ A real-time-ready collaborative task board. Sign in, create boards, invite peopl
 with a role, and drag cards around. Every change applies optimistically and
 reconciles against the server.
 
-**Live:** runs as one Node service (custom `server.ts`) so the WebSocket server
-works. A serverless deploy also works, minus live sync.
+**Live:** https://task-board-wud1.onrender.com
+
+Try `demo@task-board.local` / `demo-password` (owner) and
+`viewer@task-board.local` / `demo-password` (viewer) in two browsers to see the
+role gate and the live sync.
 
 ## What's built
 
