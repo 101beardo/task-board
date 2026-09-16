@@ -20,6 +20,6 @@ jobs:
             echo "APP_URL variable not set; skipping."
             exit 0
           fi
-          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 60 "$URL/api/health" || echo "000")
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 120 "$URL/api/health" || echo "000")
           echo "GET $URL/api/health -> $code"
           [ "$code" = "200" ]
